@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -29,6 +31,24 @@ func connectToDatabase() *pgxpool.Pool {
 	return conn
 }
 
+func startHttpServer() {
+	http.HandleFunc("/ping", func(w http.ResponseWriter, req *http.Request) {
+		type Response struct {
+			Message string `json:"message"`
+		}
+		response := Response{Message: "Pong !"}
+		jsonStr, _ := json.Marshal(response)
+		w.Header().Add("Access-Control-Allow-Origin", "*")
+		w.Header().Add("Content-Type", "application/json")
+		w.Write(jsonStr)
+	})
+	err := http.ListenAndServe(":8080", nil)
+	if err != nil {
+		log.Fatal("Impossible de démarrer le serveur http : ", err)
+	}
+	fmt.Println("Serveur démarré sur le port 8080...")
+}
+
 func main() {
 	fmt.Println("Démarrage...")
 	loadEnvVars()
@@ -39,5 +59,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "QueryRow failed: %v\n", err)
 		os.Exit(1)
 	}
+	startHttpServer()
 	defer databaseConnection.Close()
 }
