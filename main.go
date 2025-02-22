@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"tetraaa/goback/utils"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
@@ -31,7 +33,21 @@ func connectToDatabase() *pgxpool.Pool {
 	return conn
 }
 
+func httpError(w http.ResponseWriter, errorMessage string) {
+	type Response struct {
+		Error string `json:"error"`
+	}
+	w.Header().Add("Access-Control-Allow-Origin", "*")
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusInternalServerError)
+	response := Response{Error: errorMessage}
+	jsonStr, _ := json.Marshal(response)
+	w.Write(jsonStr)
+}
+
 func startHttpServer() {
+	var startTime = time.Now()
+
 	http.HandleFunc("/ping", func(w http.ResponseWriter, req *http.Request) {
 		type Response struct {
 			Message string `json:"message"`
@@ -42,6 +58,28 @@ func startHttpServer() {
 		w.Header().Add("Content-Type", "application/json")
 		w.Write(jsonStr)
 	})
+
+	http.HandleFunc("/status", func(w http.ResponseWriter, req *http.Request) {
+
+		temp := utils.GetCPUTemp()
+
+		avgs := utils.GetCPUSAverages()
+		memTotal, memFree := utils.GetMemoryTotalAndFree()
+
+		type Response struct {
+			CpuTemp      float64       `json:"cpuTemp"`
+			Uptime       time.Duration `json:"uptime"`
+			CPUSAverages []int64       `json:"cpus"`
+			MemTotal     uint64        `json:"memTotal"`
+			MemFree      uint64        `json:"memFree"`
+		}
+		response := Response{CpuTemp: temp, Uptime: time.Duration(time.Since(startTime).Seconds()), CPUSAverages: avgs, MemTotal: memTotal, MemFree: memFree}
+		jsonStr, _ := json.Marshal(response)
+		w.Header().Add("Access-Control-Allow-Origin", "*")
+		w.Header().Add("Content-Type", "application/json")
+		w.Write(jsonStr)
+	})
+
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		log.Fatal("Impossible de démarrer le serveur http : ", err)
@@ -52,13 +90,13 @@ func startHttpServer() {
 func main() {
 	fmt.Println("Démarrage...")
 	loadEnvVars()
-	databaseConnection := connectToDatabase()
-	var result string
-	err := databaseConnection.QueryRow(context.Background(), "select 'Hello, world!'").Scan(&result)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "QueryRow failed: %v\n", err)
-		os.Exit(1)
-	}
+	// databaseConnection := connectToDatabase()
+	// var result string
+	// err := databaseConnection.QueryRow(context.Background(), "select 'Hello, world!'").Scan(&result)
+	// if err != nil {
+	// 	fmt.Fprintf(os.Stderr, "QueryRow failed: %v\n", err)
+	// 	os.Exit(1)
+	// }
 	startHttpServer()
-	defer databaseConnection.Close()
+	// defer databaseConnection.Close()
 }
