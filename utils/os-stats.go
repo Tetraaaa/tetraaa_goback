@@ -25,7 +25,6 @@ func GetCPUTemp() float64 {
 	tempString := string(stdout)
 	tempString = strings.ReplaceAll(tempString, "temp=", "")
 	tempString = strings.ReplaceAll(tempString, "'C", "")
-	tempString = strings.ReplaceAll(tempString, ".", ",")
 	tempString = strings.ReplaceAll(tempString, "\n", "")
 	temp, err := strconv.ParseFloat(tempString, 64)
 	if err != nil {
@@ -70,4 +69,9 @@ func GetMemoryTotalAndFree() (uint64, uint64) {
 	}
 	return *stats.MemTotal, *stats.MemAvailable
 
+}
+
+type PeribotResponse struct {
+	Status string `json:"status"`
+	Uptime int64  `json:"uptime"`
 }

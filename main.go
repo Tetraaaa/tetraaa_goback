@@ -64,15 +64,17 @@ func startHttpServer() {
 		temp := utils.GetCPUTemp()
 		avgs := utils.GetCPUSAverages()
 		memTotal, memFree := utils.GetMemoryTotalAndFree()
+		peribotStatus, _ := utils.GetPeribotStatus()
 
 		type Response struct {
-			CpuTemp      float64       `json:"cpuTemp"`
-			Uptime       time.Duration `json:"uptime"`
-			CPUSAverages []int64       `json:"cpus"`
-			MemTotal     uint64        `json:"memTotal"`
-			MemFree      uint64        `json:"memFree"`
+			CpuTemp       float64               `json:"cpuTemp"`
+			Uptime        time.Duration         `json:"uptime"`
+			CPUSAverages  []int64               `json:"cpus"`
+			MemTotal      uint64                `json:"memTotal"`
+			MemFree       uint64                `json:"memFree"`
+			PeribotStatus utils.PeribotResponse `json:"peribotStatus"`
 		}
-		response := Response{CpuTemp: temp, Uptime: time.Duration(time.Since(startTime).Seconds()), CPUSAverages: avgs, MemTotal: memTotal, MemFree: memFree}
+		response := Response{CpuTemp: temp, Uptime: time.Duration(time.Since(startTime).Seconds()), CPUSAverages: avgs, MemTotal: memTotal, MemFree: memFree, PeribotStatus: peribotStatus}
 		jsonStr, _ := json.Marshal(response)
 		w.Header().Add("Access-Control-Allow-Origin", "*")
 		w.Header().Add("Content-Type", "application/json")
