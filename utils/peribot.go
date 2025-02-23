@@ -7,7 +7,7 @@ import (
 )
 
 func GetPeribotStatus() (PeribotResponse, error) {
-	fallbackValue := PeribotResponse{Status: "offline", Uptime: 0}
+	fallbackValue := PeribotResponse{Status: "offline", Uptime: 0, MemoryUsed: 0, CachedChannels: 0, TotalAttachments: 0}
 	resp, err := http.Get("http://localhost:3000")
 	if err != nil {
 		return fallbackValue, err

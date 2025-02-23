@@ -72,6 +72,9 @@ func GetMemoryTotalAndFree() (uint64, uint64) {
 }
 
 type PeribotResponse struct {
-	Status string `json:"status"`
-	Uptime int64  `json:"uptime"`
+	Status           string `json:"status"`
+	Uptime           int64  `json:"uptime"`
+	MemoryUsed       int64  `json:"memoryUsed"`
+	CachedChannels   int64  `json:"cachedChannels"`
+	TotalAttachments int64  `json:"totalAttachments"`
 }
