@@ -63,6 +63,6 @@ func GetMemoryTotalAndFree() (uint64, uint64) {
 	if err != nil {
 		return fallbackValue1, fallbackValue2
 	}
-	return *stats.MemTotal, *stats.MemFree
+	return *stats.MemTotal, *stats.MemAvailable
 
 }

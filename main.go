@@ -62,7 +62,6 @@ func startHttpServer() {
 	http.HandleFunc("/status", func(w http.ResponseWriter, req *http.Request) {
 
 		temp := utils.GetCPUTemp()
-
 		avgs := utils.GetCPUSAverages()
 		memTotal, memFree := utils.GetMemoryTotalAndFree()
 
