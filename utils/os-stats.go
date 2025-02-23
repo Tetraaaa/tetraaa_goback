@@ -26,6 +26,7 @@ func GetCPUTemp() float64 {
 	tempString = strings.ReplaceAll(tempString, "temp=", "")
 	tempString = strings.ReplaceAll(tempString, "'C", "")
 	tempString = strings.ReplaceAll(tempString, ".", ",")
+	tempString = strings.ReplaceAll(tempString, "\n", "")
 	temp, err := strconv.ParseFloat(tempString, 64)
 	if err != nil {
 		log.Print(err)
