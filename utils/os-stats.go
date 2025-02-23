@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"log"
 	"os/exec"
 	"runtime"
 	"strconv"
@@ -17,6 +18,7 @@ func GetCPUTemp() float64 {
 	cmd := exec.Command("vcgencmd", "measure_temp")
 	stdout, err := cmd.Output()
 	if err != nil {
+		log.Print(err)
 		return fallbackValue
 	}
 
