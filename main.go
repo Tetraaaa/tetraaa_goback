@@ -59,6 +59,57 @@ func startHttpServer() {
 		w.Write(jsonStr)
 	})
 
+	http.HandleFunc("/stock", func(w http.ResponseWriter, req *http.Request) {
+		if !req.URL.Query().Has("ticker") {
+			httpError(w, "Missing ticker query param")
+		}
+
+		ticker := req.URL.Query().Get("ticker")
+		url := fmt.Sprintf("https://query1.finance.yahoo.com/v8/finance/chart/%s?metrics=high?&interval=1d", ticker)
+		client := &http.Client{}
+
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			httpError(w, "Error instantiating request")
+		}
+
+		req.Header.Add("User-Agent", `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36`)
+		resp, err := client.Do(req)
+
+		if err != nil {
+			httpError(w, "Unable to get ticker value")
+		}
+
+		type Meta struct {
+			Currency           string  `json:"currency,omitempty"`
+			Symbol             string  `json:"symbol,omitempty"`
+			InstrumentType     string  `json:"instrumentType,omitempty"`
+			RegularMarketPrice float64 `json:"regularMarketPrice,omitempty"`
+			LongName           string  `json:"longName,omitempty"`
+			ShortName          string  `json:"shortName,omitempty"`
+		}
+
+		type StockDataResponse struct {
+			Chart struct {
+				Result []struct {
+					Meta Meta `json:"meta,omitempty"`
+				} `json:"result,omitempty"`
+				Error any `json:"error,omitempty"`
+			} `json:"chart,omitempty"`
+		}
+
+		stockData := StockDataResponse{}
+
+		json.NewDecoder(resp.Body).Decode(&stockData)
+
+		jsonStr, _ := json.Marshal(stockData.Chart.Result[0].Meta)
+		w.Header().Add("Access-Control-Allow-Origin", "*")
+		w.Header().Add("Content-Type", "application/json")
+		w.Write(jsonStr)
+
+		defer resp.Body.Close()
+	})
+
 	http.HandleFunc("/status", func(w http.ResponseWriter, req *http.Request) {
 
 		temp := utils.GetCPUTemp()
