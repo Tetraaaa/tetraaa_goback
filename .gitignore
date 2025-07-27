@@ -23,3 +23,7 @@ go.work.sum
 
 # env file
 .env
+
+# sensitive data
+data/portfolio.json
+data/portfolio_history.json

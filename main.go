@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"tetraaa/goback/finance"
 	"tetraaa/goback/utils"
 	"time"
 
@@ -59,55 +60,59 @@ func startHttpServer() {
 		w.Write(jsonStr)
 	})
 
+	http.HandleFunc("/portfolio", func(w http.ResponseWriter, req *http.Request) {
+
+		portfolio, err := finance.GetPortfolio()
+		if err != nil {
+			httpError(w, "Unable to retrieve portfolio. Make sure a data/portfolio.json file exists and retry.")
+			return
+		}
+
+		jsonStr, _ := json.Marshal(portfolio)
+		w.Header().Add("Access-Control-Allow-Origin", "*")
+		w.Header().Add("Content-Type", "application/json")
+		w.Write(jsonStr)
+	})
+
+	http.HandleFunc("/portfolio-history", func(w http.ResponseWriter, req *http.Request) {
+
+		type Response struct {
+			PortfolioHistory finance.PortfolioHistory `json:"portfolio_history"`
+		}
+
+		portfolio_history, err := os.ReadFile("data/portfolio_history.json")
+		if err != nil {
+			httpError(w, "Unable to retrieve portfolio history. Make sure a data/portfolio_history.json file exists and retry.")
+			return
+		}
+
+		response := Response{}
+		json.Unmarshal(portfolio_history, &response)
+		jsonStr, _ := json.Marshal(response)
+		w.Header().Add("Access-Control-Allow-Origin", "*")
+		w.Header().Add("Content-Type", "application/json")
+		w.Write(jsonStr)
+	})
+
 	http.HandleFunc("/stock", func(w http.ResponseWriter, req *http.Request) {
 		if !req.URL.Query().Has("ticker") {
 			httpError(w, "Missing ticker query param")
+			return
 		}
 
 		ticker := req.URL.Query().Get("ticker")
-		url := fmt.Sprintf("https://query1.finance.yahoo.com/v8/finance/chart/%s?metrics=high?&interval=1d", ticker)
-		client := &http.Client{}
 
-		req, err := http.NewRequest("GET", url, nil)
+		stockData, err := finance.GetStockInformationFromTicker(ticker)
 		if err != nil {
-			httpError(w, "Error instantiating request")
+			httpError(w, "Unable to get stock data for ticker")
+			return
 		}
 
-		req.Header.Add("User-Agent", `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36`)
-		resp, err := client.Do(req)
-
-		if err != nil {
-			httpError(w, "Unable to get ticker value")
-		}
-
-		type Meta struct {
-			Currency           string  `json:"currency,omitempty"`
-			Symbol             string  `json:"symbol,omitempty"`
-			InstrumentType     string  `json:"instrumentType,omitempty"`
-			RegularMarketPrice float64 `json:"regularMarketPrice,omitempty"`
-			LongName           string  `json:"longName,omitempty"`
-			ShortName          string  `json:"shortName,omitempty"`
-		}
-
-		type StockDataResponse struct {
-			Chart struct {
-				Result []struct {
-					Meta Meta `json:"meta,omitempty"`
-				} `json:"result,omitempty"`
-				Error any `json:"error,omitempty"`
-			} `json:"chart,omitempty"`
-		}
-
-		stockData := StockDataResponse{}
-
-		json.NewDecoder(resp.Body).Decode(&stockData)
-
-		jsonStr, _ := json.Marshal(stockData.Chart.Result[0].Meta)
+		jsonStr, _ := json.Marshal(stockData)
 		w.Header().Add("Access-Control-Allow-Origin", "*")
 		w.Header().Add("Content-Type", "application/json")
 		w.Write(jsonStr)
 
-		defer resp.Body.Close()
 	})
 
 	http.HandleFunc("/status", func(w http.ResponseWriter, req *http.Request) {
@@ -132,16 +137,20 @@ func startHttpServer() {
 		w.Write(jsonStr)
 	})
 
+	fmt.Println("Démarrage du serveur sur le port 8080.")
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		log.Fatal("Impossible de démarrer le serveur http : ", err)
 	}
-	fmt.Println("Serveur démarré sur le port 8080...")
 }
 
 func main() {
 	fmt.Println("Démarrage...")
+	fmt.Println("Chargement des variables d'environnement...")
 	loadEnvVars()
+	fmt.Println("Enregistrement des cron jobs...")
+	utils.RegisterCronJobs()
+
 	// databaseConnection := connectToDatabase()
 	// var result string
 	// err := databaseConnection.QueryRow(context.Background(), "select 'Hello, world!'").Scan(&result)
