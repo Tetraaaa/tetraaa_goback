@@ -12,7 +12,8 @@ import (
 
 func RegisterCronJobs() {
 	crontab := cron.New()
-	crontab.AddFunc("@daily", UpdatePortfolioHistory)
+	crontab.AddFunc("@hourly", UpdatePortfolioHistory)
+	crontab.Start()
 }
 
 func UpdatePortfolioHistory() {
