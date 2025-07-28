@@ -77,11 +77,15 @@ func checkForAuth(req *http.Request, w http.ResponseWriter) bool {
 
 func route(pattern string, handler func(http.ResponseWriter, *http.Request)) {
 	http.HandleFunc(pattern, func(w http.ResponseWriter, req *http.Request) {
-		w.Header().Add("Access-Control-Allow-Headers", " Origin, Content-Type, Authorization")
+		w.Header().Add("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization")
 		w.Header().Add("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
 		w.Header().Add("Access-Control-Allow-Origin", "*")
 		w.Header().Add("Content-Type", "application/json")
-		handler(w, req)
+		if req.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+		} else {
+			handler(w, req)
+		}
 	})
 }
 
@@ -94,8 +98,6 @@ func startHttpServer() {
 		}
 		response := Response{Message: "Pong !"}
 		jsonStr, _ := json.Marshal(response)
-		w.Header().Add("Access-Control-Allow-Origin", "*")
-		w.Header().Add("Content-Type", "application/json")
 		w.Write(jsonStr)
 	})
 
