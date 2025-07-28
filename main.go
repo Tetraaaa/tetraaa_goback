@@ -16,9 +16,10 @@ import (
 )
 
 func loadEnvVars() {
-	env := os.Getenv("ENV")
-	if env == "" {
-		env = "dev"
+	hostname, _ := os.Hostname()
+	env := "dev"
+	if hostname == "raspberrypi" {
+		env = "prod"
 	}
 	err := godotenv.Load(".env." + env)
 	if err != nil {
@@ -46,6 +47,38 @@ func httpError(w http.ResponseWriter, errorMessage string) {
 	w.Write(jsonStr)
 }
 
+func authError(w http.ResponseWriter) {
+	type Response struct {
+		Error string `json:"error"`
+	}
+	w.Header().Add("Access-Control-Allow-Origin", "*")
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusUnauthorized)
+	response := Response{Error: "Invalid credentials"}
+	jsonStr, _ := json.Marshal(response)
+	w.Write(jsonStr)
+}
+
+func checkForAuth(req *http.Request, w http.ResponseWriter) bool {
+	validApiKey := os.Getenv("API_KEY")
+	if validApiKey == "" {
+		return true
+	}
+
+	authHeader := req.Header.Get("Authorization")
+	if authHeader == "" {
+		authError(w)
+		return false
+	}
+
+	if authHeader == fmt.Sprintf("Bearer %s", validApiKey) {
+		return true
+	}
+
+	authError(w)
+	return false
+}
+
 func startHttpServer() {
 	var startTime = time.Now()
 
@@ -61,7 +94,9 @@ func startHttpServer() {
 	})
 
 	http.HandleFunc("/portfolio", func(w http.ResponseWriter, req *http.Request) {
-
+		if !checkForAuth(req, w) {
+			return
+		}
 		portfolio, err := finance.GetPortfolio()
 		if err != nil {
 			httpError(w, "Unable to retrieve portfolio. Make sure a data/portfolio.json file exists and retry.")
@@ -75,7 +110,9 @@ func startHttpServer() {
 	})
 
 	http.HandleFunc("/portfolio-history", func(w http.ResponseWriter, req *http.Request) {
-
+		if !checkForAuth(req, w) {
+			return
+		}
 		type Response struct {
 			PortfolioHistory finance.PortfolioHistory `json:"portfolio_history"`
 		}
@@ -95,6 +132,9 @@ func startHttpServer() {
 	})
 
 	http.HandleFunc("/stock", func(w http.ResponseWriter, req *http.Request) {
+		if !checkForAuth(req, w) {
+			return
+		}
 		if !req.URL.Query().Has("ticker") {
 			httpError(w, "Missing ticker query param")
 			return
