@@ -39,8 +39,6 @@ func httpError(w http.ResponseWriter, errorMessage string) {
 	type Response struct {
 		Error string `json:"error"`
 	}
-	w.Header().Add("Access-Control-Allow-Origin", "*")
-	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusInternalServerError)
 	response := Response{Error: errorMessage}
 	jsonStr, _ := json.Marshal(response)
@@ -51,8 +49,6 @@ func authError(w http.ResponseWriter) {
 	type Response struct {
 		Error string `json:"error"`
 	}
-	w.Header().Add("Access-Control-Allow-Origin", "*")
-	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusUnauthorized)
 	response := Response{Error: "Invalid credentials"}
 	jsonStr, _ := json.Marshal(response)
@@ -79,10 +75,20 @@ func checkForAuth(req *http.Request, w http.ResponseWriter) bool {
 	return false
 }
 
+func route(pattern string, handler func(http.ResponseWriter, *http.Request)) {
+	http.HandleFunc(pattern, func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Add("Access-Control-Allow-Headers", " Origin, Content-Type, Authorization")
+		w.Header().Add("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
+		w.Header().Add("Access-Control-Allow-Origin", "*")
+		w.Header().Add("Content-Type", "application/json")
+		handler(w, req)
+	})
+}
+
 func startHttpServer() {
 	var startTime = time.Now()
 
-	http.HandleFunc("/ping", func(w http.ResponseWriter, req *http.Request) {
+	route("/ping", func(w http.ResponseWriter, req *http.Request) {
 		type Response struct {
 			Message string `json:"message"`
 		}
@@ -93,7 +99,7 @@ func startHttpServer() {
 		w.Write(jsonStr)
 	})
 
-	http.HandleFunc("/portfolio", func(w http.ResponseWriter, req *http.Request) {
+	route("/portfolio", func(w http.ResponseWriter, req *http.Request) {
 		if !checkForAuth(req, w) {
 			return
 		}
@@ -104,12 +110,10 @@ func startHttpServer() {
 		}
 
 		jsonStr, _ := json.Marshal(portfolio)
-		w.Header().Add("Access-Control-Allow-Origin", "*")
-		w.Header().Add("Content-Type", "application/json")
 		w.Write(jsonStr)
 	})
 
-	http.HandleFunc("/portfolio-history", func(w http.ResponseWriter, req *http.Request) {
+	route("/portfolio-history", func(w http.ResponseWriter, req *http.Request) {
 		if !checkForAuth(req, w) {
 			return
 		}
@@ -126,12 +130,10 @@ func startHttpServer() {
 		response := Response{}
 		json.Unmarshal(portfolio_history, &response)
 		jsonStr, _ := json.Marshal(response)
-		w.Header().Add("Access-Control-Allow-Origin", "*")
-		w.Header().Add("Content-Type", "application/json")
 		w.Write(jsonStr)
 	})
 
-	http.HandleFunc("/stock", func(w http.ResponseWriter, req *http.Request) {
+	route("/stock", func(w http.ResponseWriter, req *http.Request) {
 		if !checkForAuth(req, w) {
 			return
 		}
@@ -149,13 +151,11 @@ func startHttpServer() {
 		}
 
 		jsonStr, _ := json.Marshal(stockData)
-		w.Header().Add("Access-Control-Allow-Origin", "*")
-		w.Header().Add("Content-Type", "application/json")
 		w.Write(jsonStr)
 
 	})
 
-	http.HandleFunc("/status", func(w http.ResponseWriter, req *http.Request) {
+	route("/status", func(w http.ResponseWriter, req *http.Request) {
 
 		temp := utils.GetCPUTemp()
 		avgs := utils.GetCPUSAverages()
@@ -172,8 +172,6 @@ func startHttpServer() {
 		}
 		response := Response{CpuTemp: temp, Uptime: time.Duration(time.Since(startTime).Seconds()), CPUSAverages: avgs, MemTotal: memTotal, MemFree: memFree, PeribotStatus: peribotStatus}
 		jsonStr, _ := json.Marshal(response)
-		w.Header().Add("Access-Control-Allow-Origin", "*")
-		w.Header().Add("Content-Type", "application/json")
 		w.Write(jsonStr)
 	})
 
