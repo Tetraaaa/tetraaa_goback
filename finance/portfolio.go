@@ -61,6 +61,18 @@ func GetPortfolio() (*PortfolioResponse, error) {
 	return &response, nil
 }
 
+func GetPortfolioHistory() (*PortfolioHistory, error) {
+	portfolio, err := os.ReadFile("data/portfolio_history.json")
+	if err != nil {
+		return nil, err
+	}
+
+	response := PortfolioHistory{}
+	json.Unmarshal(portfolio, &response)
+
+	return &response, nil
+}
+
 func GetStockInformationFromTicker(ticker string) (*StockDataMeta, error) {
 	if ticker == "" {
 		return nil, errors.New("no ticker provided")

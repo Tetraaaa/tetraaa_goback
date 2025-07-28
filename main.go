@@ -119,19 +119,14 @@ func startHttpServer() {
 		if !checkForAuth(req, w) {
 			return
 		}
-		type Response struct {
-			PortfolioHistory finance.PortfolioHistory `json:"portfolio_history"`
-		}
 
-		portfolio_history, err := os.ReadFile("data/portfolio_history.json")
+		portfolio_history, err := finance.GetPortfolioHistory()
 		if err != nil {
 			httpError(w, "Unable to retrieve portfolio history. Make sure a data/portfolio_history.json file exists and retry.")
 			return
 		}
 
-		response := Response{}
-		json.Unmarshal(portfolio_history, &response)
-		jsonStr, _ := json.Marshal(response)
+		jsonStr, _ := json.Marshal(portfolio_history)
 		w.Write(jsonStr)
 	})
 
